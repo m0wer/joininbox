@@ -110,9 +110,8 @@ function installBitcoinCore() {
       echo "# Add /home/joinmarket/bitcoin to the local PATH"
       echo "PATH=/home/joinmarket/bitcoin:$PATH" | sudo tee -a /home/joinmarket/.profile
     fi
-    installed=$(/home/joinmarket/bitcoin/bitcoind --version | \
-      grep -Fc "Bitcoin Core version v${bitcoinVersion}")
-    if [ ${installed} -lt 1 ]; then
+    if ! /home/joinmarket/bitcoin/bitcoind --version |
+      grep -Eq '^Bitcoin Core (daemon )?version v?[0-9]+(\.[0-9]+)+'; then
       echo
       echo "# BUILD FAILED --> Was not able to install Bitcoin Core"
       exit 1
@@ -160,6 +159,8 @@ function installSignet() {
     echo "
 [Unit]
 Description=Bitcoin daemon on signet
+Wants=network-online.target tor@default.service
+After=network-online.target tor@default.service
 
 [Service]
 Environment='MALLOC_ARENA_MAX=1'

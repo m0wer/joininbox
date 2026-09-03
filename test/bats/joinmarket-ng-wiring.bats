@@ -76,6 +76,20 @@ assert_absent() {
   assert_absent "$standalone_functions" 'watch-only-descriptor-wallet|createwallet'
 }
 
+@test "Bitcoin Core installation accepts daemon-specific version output" {
+  local version_pattern="^Bitcoin Core (daemon )?version v?[0-9]+(\\.[0-9]+)+"
+
+  grep -Fq "grep -Eq '$version_pattern'" "$bitcoin_functions"
+  grep -Fq "grep -Eq '$version_pattern'" "$standalone_functions"
+  assert_absent "$bitcoin_functions" 'grep -c "Bitcoin Core version"'
+  assert_absent "$standalone_functions" 'grep "Bitcoin Core version"'
+}
+
+@test "signet orders Bitcoin Core after network and Tor services" {
+  grep -Fq 'Wants=network-online.target tor@default.service' "$bitcoin_functions"
+  grep -Fq 'After=network-online.target tor@default.service' "$bitcoin_functions"
+}
+
 @test "version, update, and shell command wiring targets JoinMarket NG" {
   grep -Fq 'currentJMNGversion=' "$functions"
   grep -Fq '/home/joinmarketng/venv/bin/python' "$functions"

@@ -169,7 +169,8 @@ function installBitcoinCoreStandalone() {
     cd /home/joinmarket/download/bitcoin-${bitcoinVersion}/bin/ || exit 1
     sudo install -m 0755 -o root -g root -t /usr/local/bin/ ./*
   fi
-  if ! sudo -u bitcoin /usr/local/bin/bitcoind --version | grep "Bitcoin Core version"; then
+  if ! sudo -u bitcoin /usr/local/bin/bitcoind --version |
+    grep -Eq '^Bitcoin Core (daemon )?version v?[0-9]+(\.[0-9]+)+'; then
     echo
     echo "# BUILD FAILED --> Was not able to install Bitcoin Core)"
     exit 1
