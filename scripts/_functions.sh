@@ -50,8 +50,8 @@ sourceConf /home/joinmarket/joinin.conf
 # versions
 currentJBcommit=$(cd /home/joinmarket/joininbox; git describe --tags)
 currentJBtag=$(cd /home/joinmarket/joininbox; git tag | sort -V | tail -1)
-currentJMversion=$(cd /home/joinmarket/joinmarket-clientserver 2>/dev/null; \
-git describe --tags 2>/dev/null)
+currentJMNGversion=$(/home/joinmarketng/venv/bin/python -c \
+  'from importlib.metadata import version; print(version("jmcore"))' 2>/dev/null || printf "not installed")
 currentBTCversion=$(bitcoind --version | grep version)
 
 # paths
@@ -274,6 +274,13 @@ function copyJoininboxScripts() {
   sudo -u joinmarket cp /home/joinmarket/joininbox/scripts/*.* /home/joinmarket/
   sudo -u joinmarket cp /home/joinmarket/joininbox/scripts/.* /home/joinmarket/ 2>/dev/null
   sudo -u joinmarket chmod +x /home/joinmarket/*.sh
+  sudo install -d -m 755 -o root -g root /usr/local/libexec/joininbox
+  sudo install -m 755 -o root -g root \
+    /home/joinmarket/joininbox/scripts/install.joinmarket-ng.sh \
+    /usr/local/libexec/joininbox/install.joinmarket-ng.sh
+  sudo install -m 755 -o root -g root \
+    /home/joinmarket/joininbox/scripts/set.joinmarket-ng-config.py \
+    /usr/local/libexec/joininbox/set.joinmarket-ng-config.py
   if [ $runningEnv = "standalone" ];then
     sudo -u joinmarket cp -r /home/joinmarket/joininbox/scripts/standalone /home/joinmarket/
     sudo -u joinmarket chmod +x /home/joinmarket/standalone/*.sh
