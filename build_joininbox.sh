@@ -406,6 +406,10 @@ else
     PGPsigner="openoms"
     PGPpubkeyLink="https://github.com/openoms.gpg"
     PGPpubkeyFingerprint="13C688DB5B9C745DE4D2E4545BFB77609B081B65"
+  elif echo "${lastCommit}" | grep 1C53A412D11EF3051704419C44912E1E03005B31; then
+    PGPsigner="joinmarket-ng"
+    PGPpubkeyLink="https://raw.githubusercontent.com/joinmarket-ng/joinmarket-ng/0c3716b53c132bd46fc92d240beebe7158a06e16/signatures/pubkeys/1C53A412D11EF3051704419C44912E1E03005B31.asc"
+    PGPpubkeyFingerprint="1C53A412D11EF3051704419C44912E1E03005B31"
   elif echo "${lastCommit}" | grep B5690EEEBB952194; then
     echo "# The last commit was made on GitHub and is signed with the GitHub PGP key."
     PGPsigner="web-flow"
@@ -473,18 +477,24 @@ if [ "$torTest" != "Congratulations. This browser is configured to use Tor." ]; 
   echo "# Install dirmngr"
   apt-get install -y dirmngr apt-transport-https
   echo
-  echo "# Adding KEYS deb.torproject.org "
-  torKeyAvailable=$(gpg --list-keys | grep -c \
-    "A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89")
-  echo "torKeyAvailable=${torKeyAvailable}"
-  if [ ${torKeyAvailable} -eq 0 ]; then
-    # https://support.torproject.org/apt/tor-deb-repo/
-    wget --prefer-family=ipv4 -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --import
-    gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | apt-key add -
-    echo "OK"
-  else
-    echo "# Tor key is available"
+  echo "# Adding the scoped deb.torproject.org keyring"
+  torKeyFingerprint="A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89"
+  torSigningFingerprint="2265EB4CB2BF88D900AE8D1B74A941BA219EC810"
+  torKeyUrl="https://deb.torproject.org/torproject.org/${torKeyFingerprint}.asc"
+  torKeyFile=$(mktemp)
+  wget --prefer-family=ipv4 -qO "${torKeyFile}" "${torKeyUrl}"
+  torKeyFingerprints=$(gpg --show-keys --with-colons "${torKeyFile}" | awk -F: '/^fpr:/ {print $10}')
+  if ! grep -qx "${torKeyFingerprint}" <<<"${torKeyFingerprints}" ||
+    ! grep -qx "${torSigningFingerprint}" <<<"${torKeyFingerprints}"; then
+    rm -f "${torKeyFile}"
+    echo "# Unexpected deb.torproject.org signing key"
+    exit 1
   fi
+  gpg --batch --yes --dearmor \
+    --output /usr/share/keyrings/deb.torproject.org-keyring.gpg "${torKeyFile}"
+  rm -f "${torKeyFile}"
+  chmod 644 /usr/share/keyrings/deb.torproject.org-keyring.gpg
+  echo "OK"
   echo "# Adding Tor Sources to sources.list"
   torSourceListAvailable=$(cat /etc/apt/sources.list | grep -c \
     'https://deb.torproject.org/torproject.org')
@@ -494,8 +504,8 @@ if [ "$torTest" != "Congratulations. This browser is configured to use Tor." ]; 
     arch=$(dpkg --print-architecture)
     distro=$(lsb_release -sc)
     echo "\
-deb [arch=${arch}] https://deb.torproject.org/torproject.org ${distro} main
-deb-src [arch=${arch}] https://deb.torproject.org/torproject.org ${distro} main" |
+deb [arch=${arch} signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org ${distro} main
+deb-src [arch=${arch} signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg] https://deb.torproject.org/torproject.org ${distro} main" |
       tee /etc/apt/sources.list.d/tor.list
     echo "OK"
   else

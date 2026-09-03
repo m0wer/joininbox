@@ -35,7 +35,7 @@ assert_absent() {
   grep -Fq 'install.joinmarket-ng.sh on' "$start"
   grep -Fq 'install.joinmarket-ng.sh integrate' "$start"
   grep -Fq 'install.joinmarket-ng.sh menu' "$main_menu"
-  grep -Fq 'install.joinmarket-ng.sh update 0.37.1' "$update_menu"
+  grep -Fq 'install.joinmarket-ng.sh update 0.38.0' "$update_menu"
 }
 
 @test "startup synchronizes non-secret state from the NG TOML configuration" {
@@ -101,6 +101,11 @@ assert_absent() {
   grep -Fq '/usr/local/libexec/joininbox/set.joinmarket-ng-config.py' "$build"
 }
 
+@test "production builds trust the JoinMarket NG signing key" {
+  grep -Fq '1C53A412D11EF3051704419C44912E1E03005B31' "$build"
+  grep -Fq 'joinmarket-ng/0c3716b53c132bd46fc92d240beebe7158a06e16/signatures/pubkeys/' "$build"
+}
+
 @test "all migrated shell files pass bash syntax validation" {
   local scripts=(
     "$build"
@@ -119,4 +124,15 @@ assert_absent() {
 
   run bash -n "${scripts[@]}"
   [ "$status" -eq 0 ]
+}
+
+@test "Tor repositories use a fingerprint-checked scoped keyring" {
+  local keyring="signed-by=/usr/share/keyrings/deb.torproject.org-keyring.gpg"
+
+  grep -Fq 'A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89' "$build"
+  grep -Fq '2265EB4CB2BF88D900AE8D1B74A941BA219EC810' "$build"
+  grep -Fq 'gpg --show-keys --with-colons' "$build"
+  grep -Fq "$keyring" "$build"
+  grep -Fq "$keyring" "$functions"
+  ! grep -Fq 'apt-key add' "$build"
 }
